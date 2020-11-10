@@ -1,3 +1,4 @@
+from typing import OrderedDict
 import pandas as pd # package for high-performance, easy-to-use data structures and data analysis
 import numpy as np # fundamental package for scientific computing with Python
 import matplotlib.pyplot as plt
@@ -405,3 +406,135 @@ def MutualInformation(df,x,y):
             if (i,j) in pxy:
                 s += pxy[i,j] * np.log2(pxy[i,j]/(px[i]*py[j]))
     return s
+
+def ConditionalMutualInformation(df,x,y,z):
+    sx = set()
+    sy = set()
+    pz = dict()
+    pxyz = dict()
+    taille = int(df.size/len(getNthDict(df,0)))
+    for i in range(taille):
+        d = getNthDict(df,i)
+        if d[x] not in sx:
+            sx.add(d[x])
+        if d[y] not in sy:
+            sy.add(d[y])
+        if d[z] not in pz:
+            pz[d[z]] = 1
+        else :
+            pz[d[z]] += 1
+        if (d[x],d[y],d[z]) not in pxyz:
+            pxyz[(d[x],d[y],d[z])] = 1
+        else :
+            pxyz[(d[x],d[y],d[z])] += 1
+    for i in pz:
+        pz[i] /= taille
+    for i in pxyz:
+        pxyz[i] /= taille
+    s=0
+    for i in sx:
+        for j in sy:
+            for k in pz:
+                if (i,j,k) in pxyz:
+                    pxz = 0
+                    pyz = 0
+                    for (a,b,c) in pxyz:
+                        if a == i and c == k:
+                            pxz += pxyz[(a,b,c)]
+                        if b == j and c == k:
+                            pyz += pxyz[(a,b,c)]
+                    s += pxyz[(i,j,k)] * np.log2(pz[k]*pxyz[(i,j,k)]/(pxz*pyz))
+    return s
+
+def MeanForSymetricWeights(a):
+    s = 0
+    (n,m) = np.shape(a)
+    for i in range(n):
+        for j in range(m):
+            s += a[i][j]
+    s /= (n*(m-1))
+    return s
+
+def SimplifyConditionalMutualInformationMatrix(a):
+    mean = MeanForSymetricWeights(a)
+    (n,m) = np.shape(a)
+    for i in range(n):
+        for j in range(m):
+            if a[i][j] < mean:
+                a[i][j] = 0
+    return 
+
+
+def Kruskal(df,a):
+    A = [] #matrice res
+    noeuds = df.keys()
+    #construction de l'union find
+    union_find=[]
+    for i in noeuds:
+        union_find.append({i})
+    #construction de la matrice d'arrête triees
+    AS = [] 
+    (n,m) = np.shape(a)
+    for i in range(n):
+        for j in range(i,m):
+            if a[i][j] > 1e-15:
+                AS.append((noeuds[i], noeuds[j], a[i][j]))
+    AS.sort(key=lambda tup: tup[2], reverse = True)
+    
+    #Calcul du resultat
+    for (u,v,x) in AS: 
+        fu = set()
+        fv = set()   
+        for eu in union_find:
+            if u in eu:
+                fu = eu
+                break
+        for ev in union_find:
+            if v in ev:
+                fv = ev
+                break
+        if fu != fv:
+             A.append((u,v,x))
+             union_find.append(fu.union(fv))
+             if fu in union_find :
+                union_find.remove(fu)
+             if fv in union_find:
+                union_find.remove(fv)         
+    return A
+
+def ConnexSets(L):
+    res = []
+    for (i,j,k) in L:
+        b = True
+        for ens in res:
+            if i in ens or j in ens:
+                ens.add(j)
+                ens.add(i)
+                b = False
+                break
+        if b:
+            res.append({i,j})
+    return res
+
+def OrientConnexSets(df,L,attr):
+    res = []
+    for (x,y,a) in L:
+        b = MutualInformation(df,x,attr)
+        c = MutualInformation(df,y,attr)
+        """print("x : " + x + " y : " + y)
+        print("b : " + str(b) + "       c : " + str(c) )"""
+        if b > c:
+            res.append((x,y))
+        else :
+            res.append((y,x))
+    return res
+
+class MAPTANClassfier(APrioriClassifier):
+    def __init__(self, df):
+        pass
+    def estimProbas(self, df, attrs):
+        pass
+    def estimClass(self, df, attrs):
+        pass
+    def draw():
+        pass
